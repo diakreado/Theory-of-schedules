@@ -33,11 +33,24 @@ def get_available_events(matrix, done_works):
     return np.array(events)
 
 
-def choose_works(matrix, available_works, reserve_time, workers_number, type=0):
+def get_reserve_time(works, matrix):
+    reserve_time = []
+    for work in works:
+        reserve_time.append(int(matrix[work[0]][work[1]]))
+    return np.array(reserve_time)
+
+
+def choose_works(matrix, available_works, reserve_time_matrix, workers_number):
     duration = get_duration(available_works, matrix)
-    sorted_indecies = sorted(range(len(duration)), key=lambda k: -duration[k])
+    reserve_time = get_reserve_time(available_works, reserve_time_matrix)
+    # print("\n", reserve_time, "\n")
+    # print("\n", duration)
+    # sorted_indecies = sorted(range(len(duration)), key=lambda k: duration[k])
+    sorted_indecies = sorted(range(len(reserve_time)), key=lambda k: -reserve_time[k])
+    # print(sorted_indecies)
     while workers_number < len(sorted_indecies):
         sorted_indecies.pop()
+    # print(sorted_indecies, "\n")
     chosen_works = []
     for i in sorted_indecies:
         chosen_works.append(available_works[i])
@@ -55,15 +68,23 @@ def solve(matrix, early_moments, late_moments, reserve_time, workers_number):
     chosen_works = choose_works(matrix, available_works, reserve_time, workers_number)
     end_moments = get_duration(chosen_works, matrix) + t
 
-    print("---------------------")
-    print("T:\n", t)
-    print("aD:\n", all_done_works)
-    print("D:\n", done_works)
-    print("E:\n", happened_events)
-    print("W:\n", available_works)
-    print("A:\n", get_duration(available_works, matrix).transpose())
-    print("V:\n", chosen_works)
-    print("L:\n", end_moments)
+    # print("---------------------")
+    # print("T:\n", t)
+    # # print("aD:\n", all_done_works)
+    # print("D:\n", done_works)
+    # print("E:\n", happened_events)
+    # print("W:\n", available_works)
+    # print("A:\n", get_duration(available_works, matrix).transpose())
+    # print("V:\n", chosen_works)
+    # print("L:\n", end_moments)
+    print(t, end=" & ")
+    # print("aD:\n", all_done_works)
+    print(done_works, end=" & ")
+    print(happened_events, end=" & ")
+    print(available_works, end=" & ")
+    print(get_duration(available_works, matrix).transpose(), end=" & ")
+    print(chosen_works, end=" & ")
+    print(end_moments, end=" \\\\ \hline \n ")
 
     while len(happened_events) != len(matrix):
 
@@ -82,17 +103,25 @@ def solve(matrix, early_moments, late_moments, reserve_time, workers_number):
         end_moments = end_moments[np.invert(done_mask)] - dt
         end_moments = np.append(end_moments, get_duration(new_works, matrix))
 
-        print("---------------------")
-        print("T:\n", t)
-        print("aD:\n", all_done_works)
-        print("D:\n", done_works)
-        print("E:\n", happened_events)
-        print("W:\n", available_works)
-        print("A:\n", get_duration(available_works, matrix).transpose())
-        print("V:\n", chosen_works)
-        print("L:\n", end_moments)
+        # print("---------------------")
+        # print("T:\n", t)
+        # # print("aD:\n", all_done_works)
+        # print("D:\n", done_works)
+        # print("E:\n", happened_events)
+        # print("W:\n", available_works)
+        # print("A:\n", get_duration(available_works, matrix).transpose())
+        # print("V:\n", chosen_works)
+        # print("L:\n", end_moments)
+        print(t, end=" & ")
+        # print("aD:\n", all_done_works)
+        print(done_works, end=" & ")
+        print(happened_events, end=" & ")
+        print(available_works, end=" & ")
+        print(get_duration(available_works, matrix).transpose(), end=" & ")
+        print(chosen_works, end=" & ")
+        print(end_moments, end=" \\\\ \hline \n ")
 
 
 if __name__ == '__main__':
     matrix, early_moments, late_moments, reserve_time = read_graph('input_data', True)
-    solve(np.array(matrix), np.array(early_moments), np.array(late_moments), np.array(reserve_time), 4)
+    solve(np.array(matrix), np.array(early_moments), np.array(late_moments), np.array(reserve_time), 2)
