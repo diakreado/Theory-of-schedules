@@ -1,5 +1,33 @@
 import numpy as np
 from read_graph import read_graph
+from plot_diagram import plot_diagram
+
+
+def print_result(all_done_works, available_works, chosen_works, done_works, end_moments, happened_events, matrix, t):
+    print("---------------------")
+    print("T:\n", t)
+    print("aD:\n", all_done_works)
+    print("D:\n", done_works)
+    print("E:\n", happened_events)
+    print("W:\n", available_works)
+    print("A:\n", get_duration(available_works, matrix).transpose())
+    print("V:\n", chosen_works)
+    print("L:\n", end_moments)
+
+
+def print_result_latex(available_works, chosen_works, done_works, end_moments, happened_events, matrix, t):
+    result = str(t) + " & " + str(done_works.tolist() if isinstance(done_works, np.ndarray) else done_works) \
+             + " & " + str(happened_events) + " & " + str(available_works.tolist()) \
+             + " & " + str(get_duration(available_works, matrix).transpose().tolist()) + " & " \
+             + str(chosen_works.tolist()) + " & " + str(end_moments.tolist()) + " \\\\ \hline "
+
+    result = result.replace("[[", "[")
+    result = result.replace("]]", "]")
+    result = result.replace("[]", "[~]")
+    result = result.replace(",", "")
+    result = result.replace(".0", "")
+
+    print(result)
 
 
 def get_duration(works, matrix):
@@ -40,24 +68,39 @@ def get_reserve_time(works, matrix):
     return np.array(reserve_time)
 
 
-def choose_works(matrix, available_works, reserve_time_matrix, workers_number):
+def choose_works(matrix, available_works, reserve_time_matrix, workers_number, type=0):
     duration = get_duration(available_works, matrix)
     reserve_time = get_reserve_time(available_works, reserve_time_matrix)
-    # print("\n", reserve_time, "\n")
-    # print("\n", duration)
-    # sorted_indecies = sorted(range(len(duration)), key=lambda k: duration[k])
-    sorted_indecies = sorted(range(len(reserve_time)), key=lambda k: -reserve_time[k])
-    # print(sorted_indecies)
+
+    work_array = duration
+    multiplier = -1
+
+    if type == 1:
+        multiplier = 1
+    elif type == 2:
+        work_array = reserve_time
+    elif type == 3:
+        work_array = reserve_time
+        multiplier = 1
+
+    sorted_indecies = sorted(range(len(work_array)), key=lambda k: multiplier * work_array[k])
     while workers_number < len(sorted_indecies):
         sorted_indecies.pop()
-    # print(sorted_indecies, "\n")
     chosen_works = []
     for i in sorted_indecies:
         chosen_works.append(available_works[i])
     return np.array(chosen_works)
 
 
-def solve(matrix, early_moments, late_moments, reserve_time, workers_number):
+def solve(matrix, reserve_time, workers_number, type=0):
+
+    all_time = 0
+    for i in range(len(matrix)):
+        for j in range(len(matrix[i])):
+            if matrix[i][j].isnumeric():
+                all_time += float(matrix[i][j])
+
+    print("All time:", all_time)
 
     t = 0
     all_done_works = np.array([])
@@ -65,31 +108,19 @@ def solve(matrix, early_moments, late_moments, reserve_time, workers_number):
     done_works = []
 
     available_works = get_available_works(matrix, happened_events, all_done_works)
-    chosen_works = choose_works(matrix, available_works, reserve_time, workers_number)
+    chosen_works = choose_works(matrix, available_works, reserve_time, workers_number, type)
     end_moments = get_duration(chosen_works, matrix) + t
 
-    # print("---------------------")
-    # print("T:\n", t)
-    # # print("aD:\n", all_done_works)
-    # print("D:\n", done_works)
-    # print("E:\n", happened_events)
-    # print("W:\n", available_works)
-    # print("A:\n", get_duration(available_works, matrix).transpose())
-    # print("V:\n", chosen_works)
-    # print("L:\n", end_moments)
-    print(t, end=" & ")
-    # print("aD:\n", all_done_works)
-    print(done_works, end=" & ")
-    print(happened_events, end=" & ")
-    print(available_works, end=" & ")
-    print(get_duration(available_works, matrix).transpose(), end=" & ")
-    print(chosen_works, end=" & ")
-    print(end_moments, end=" \\\\ \hline \n ")
+    t_story = [t]
+    works_story = [chosen_works]
+
+    print_result_latex(available_works, chosen_works, done_works, end_moments, happened_events, matrix, t)
 
     while len(happened_events) != len(matrix):
 
         dt = np.min(end_moments)
         t += dt
+
         done_mask = end_moments == dt
         done_works = chosen_works[done_mask]
         all_done_works = done_works if len(all_done_works) == 0 \
@@ -98,30 +129,21 @@ def solve(matrix, early_moments, late_moments, reserve_time, workers_number):
         chosen_works = chosen_works[np.invert(done_mask)]
         happened_events = get_available_events(matrix, all_done_works)
         available_works = get_available_works(matrix, happened_events, np.append(all_done_works, chosen_works, axis=0))
-        new_works = choose_works(matrix, available_works, reserve_time, workers_number - len(chosen_works))
+        new_works = choose_works(matrix, available_works, reserve_time, workers_number - len(chosen_works), type)
         chosen_works = chosen_works if len(new_works) == 0 else np.append(chosen_works, new_works, axis=0)
         end_moments = end_moments[np.invert(done_mask)] - dt
         end_moments = np.append(end_moments, get_duration(new_works, matrix))
 
-        # print("---------------------")
-        # print("T:\n", t)
-        # # print("aD:\n", all_done_works)
-        # print("D:\n", done_works)
-        # print("E:\n", happened_events)
-        # print("W:\n", available_works)
-        # print("A:\n", get_duration(available_works, matrix).transpose())
-        # print("V:\n", chosen_works)
-        # print("L:\n", end_moments)
-        print(t, end=" & ")
-        # print("aD:\n", all_done_works)
-        print(done_works, end=" & ")
-        print(happened_events, end=" & ")
-        print(available_works, end=" & ")
-        print(get_duration(available_works, matrix).transpose(), end=" & ")
-        print(chosen_works, end=" & ")
-        print(end_moments, end=" \\\\ \hline \n ")
+        works_story.append(chosen_works)
+        t_story.append(t)
+
+        print_result_latex(available_works, chosen_works, done_works, end_moments, happened_events, matrix, t)
+
+    plot_diagram(t_story, works_story, workers_number)
+
+
 
 
 if __name__ == '__main__':
     matrix, early_moments, late_moments, reserve_time = read_graph('input_data', True)
-    solve(np.array(matrix), np.array(early_moments), np.array(late_moments), np.array(reserve_time), 2)
+    solve(np.array(matrix), np.array(reserve_time), 3, 3)
